@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+
+<!--豆包生成-->
+
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>五子棋游戏</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: Arial, sans-serif;
+        }
+        h1 {
+            color: #333;
+        }
+        #board {
+            display: grid;
+            grid-template-columns: repeat(15, 40px);
+            grid-template-rows: repeat(15, 40px);
+            gap: 1px;
+            background-color: #000;
+            margin: 20px 0;
+        }
+        .cell {
+            width: 40px;
+            height: 40px;
+            background-color: #dcb35c;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+        .piece {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+        }
+        .black {
+            background-color: #000;
+        }
+        .white {
+            background-color: #fff;
+            border: 1px solid #ccc;
+        }
+        #status {
+            font-size: 1.2em;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 1em;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        /* 新增彩带效果样式 */
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            animation: confetti 5s ease-in-out forwards;
+            z-index: 1000;
+        }
+        
+        @keyframes confetti {
+            0% {
+                transform: translateY(0) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>五子棋游戏</h1>
+    <div id="status">当前玩家: 黑棋</div>
+    <div id="board"></div>
+    <button id="restart">重新开始</button>
+
+    <script>
+        const boardSize = 15;
+        const board = [];
+        let currentPlayer = 'black';
+        let gameOver = false;
+        
+        // 初始化棋盘
+        const boardElement = document.getElementById('board');
+        const statusElement = document.getElementById('status');
+        const restartButton = document.getElementById('restart');
+        
+        function initBoard() {
+            boardElement.innerHTML = '';
+            board.length = 0;
+            currentPlayer = 'black';
+            gameOver = false;
+            statusElement.textContent = '当前玩家: 黑棋';
+            
+            for (let i = 0; i < boardSize; i++) {
+                board[i] = [];
+                for (let j = 0; j < boardSize; j++) {
+                    board[i][j] = null;
+                    
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.row = i;
+                    cell.dataset.col = j;
+                    cell.addEventListener('click', () => handleCellClick(i, j));
+                    boardElement.appendChild(cell);
+                }
+            }
+        }
+        
+        function handleCellClick(row, col) {
+            if (gameOver || board[row][col] !== null) return;
+            
+            board[row][col] = currentPlayer;
+            renderPiece(row, col, currentPlayer);
+            
+            if (checkWin(row, col)) {
+                statusElement.textContent = `游戏结束! ${currentPlayer === 'black' ? '黑棋' : '白棋'}获胜!`;
+                gameOver = true;
+                createConfetti();  // 新增彩带效果
+                return;
+            }
+            
+            currentPlayer = currentPlayer === 'black' ? 'white' : 'black';
+            statusElement.textContent = `当前玩家: ${currentPlayer === 'black' ? '黑棋' : '白棋'}`;
+        }
+        
+        // 新增彩带效果函数
+        function createConfetti() {
+            const colors = ['#f00', '#0f0', '#00f', '#ff0', '#f0f', '#0ff'];
+            
+            for (let i = 0; i < 100; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.animationDuration = Math.random() * 3 + 2 + 's';
+                confetti.style.width = Math.random() * 10 + 5 + 'px';
+                confetti.style.height = Math.random() * 10 + 5 + 'px';
+                document.body.appendChild(confetti);
+                
+                // 动画结束后移除元素
+                confetti.addEventListener('animationend', function() {
+                    confetti.remove();
+                });
+            }
+        }
+        
+        function renderPiece(row, col, player) {
+            const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+            const piece = document.createElement('div');
+            piece.className = `piece ${player}`;
+            cell.appendChild(piece);
+        }
+        
+        function checkWin(row, col) {
+            return checkDirection(row, col, 1, 0) ||  // 水平
+                   checkDirection(row, col, 0, 1) ||  // 垂直
+                   checkDirection(row, col, 1, 1) ||  // 对角线
+                   checkDirection(row, col, 1, -1);   // 反对角线
+        }
+        
+        function checkDirection(row, col, dx, dy) {
+            let count = 1;
+            const player = board[row][col];
+            
+            // 正向检查
+            for (let i = 1; i < 5; i++) {
+                const r = row + i * dx;
+                const c = col + i * dy;
+                if (r < 0 || r >= boardSize || c < 0 || c >= boardSize || board[r][c] !== player) break;
+                count++;
+            }
+            
+            // 反向检查
+            for (let i = 1; i < 5; i++) {
+                const r = row - i * dx;
+                const c = col - i * dy;
+                if (r < 0 || r >= boardSize || c < 0 || c >= boardSize || board[r][c] !== player) break;
+                count++;
+            }
+            
+            return count >= 5;
+        }
+        
+        restartButton.addEventListener('click', initBoard);
+        
+        // 初始化游戏
+        initBoard();
+    </script>
+</body>
+</html>
